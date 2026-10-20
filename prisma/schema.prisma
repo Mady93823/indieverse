@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SongStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CreditRole {
+  SINGER
+  MUSIC
+  LYRICS
+}
+
+model Song {
+  id             Int          @id @default(autoincrement())
+  slug           String       @unique
+  // Title in English letters, e.g. "Kannaana Kanne". Required: it's used for the URL.
+  title          String
+  titleTamil     String?      @map("title_tamil")
+  album          String?
+  releaseYear    Int?         @map("release_year")
+  youtubeUrl     String?      @map("youtube_url")
+  spotifyUrl     String?      @map("spotify_url")
+  // Public path of the resized cover, e.g. "/uploads/covers/<uuid>.webp".
+  coverImage     String?      @map("cover_image")
+  lyricsTamil    String       @default("") @map("lyrics_tamil")
+  // Tamil words written in English letters. Shown under the "English" toggle.
+  lyricsTanglish String       @default("") @map("lyrics_tanglish")
+  status         SongStatus   @default(DRAFT)
+  views          Int          @default(0)
+  publishedAt    DateTime?    @map("published_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  credits        SongCredit[]
+
+  @@index([status, publishedAt])
+  @@index([status, views])
+  @@map("songs")
+}
+
+model Artist {
+  id        Int          @id @default(autoincrement())
+  name      String
+  slug      String       @unique
+  createdAt DateTime     @default(now()) @map("created_at")
+  credits   SongCredit[]
+
+  @@map("artists")
+}
+
+// Links a song to an artist in a role. One artist can hold several roles on the same song.
+model SongCredit {
+  songId   Int        @map("song_id")
+  artistId Int        @map("artist_id")
+  role     CreditRole
+  // Order of names within a role, as the admin typed them.
+  position Int        @default(0)
+  song     Song       @relation(fields: [songId], references: [id], onDelete: Cascade)
+  artist   Artist     @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@id([songId, artistId, role])
+  @@index([artistId])
+  @@map("song_credits")
+}
+
+model Admin {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  sessions     Session[]
+
+  @@map("admins")
+}
+
+model Session {
+  // SHA-256 of the token in the cookie, so a leaked database can't be used to log in.
+  id        String   @id
+  adminId   Int      @map("admin_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("sessions")
+}
