@@ -10,7 +10,9 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "create-admin": "tsx scripts/create-admin.mts"
+    "create-admin": "tsx scripts/create-admin.mts",
+    "demo:add": "tsx scripts/demo-data.mts",
+    "demo:remove": "tsx scripts/demo-data.mts --remove"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -32,6 +32,20 @@ npm run dev                 # http://localhost:3000, admin at http://localhost:3
 
 `npm run create-admin` with an email that already exists resets that admin's password and logs them out everywhere.
 
+### Demo data
+
+```bash
+npm run demo:add       # 12 demo songs (10 published, 2 drafts) with covers, 10 artists
+npm run demo:remove    # deletes them again, e.g. before going live
+```
+
+The demo songs, lyrics and artists are all made up, so no real lyrics or artist names are published by
+accident. Running `demo:add` again resets the demo songs to their original state. Both commands only touch
+songs that still have their generated demo cover, so your own songs are never changed or deleted.
+
+The commands change the database directly, so a running site doesn't see the change until you restart
+`npm run dev`. On a production server, run `npm run build` again and restart.
+
 ## Admin workflow
 
 1. Log in at `/admin` and click **Add song**.
