@@ -13,7 +13,7 @@ export default async function LoginPage() {
   if (await getCurrentAdmin()) redirect("/admin");
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
+    <main id="main" className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">IndieVerse Admin</CardTitle>
@@ -23,6 +23,6 @@ export default async function LoginPage() {
           <LoginForm />
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

@@ -4,7 +4,10 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      {/* Pages set their own width (see Container) so song headers can span the full screen. */}
+      <main id="main" className="flex-1">
+        {children}
+      </main>
       <SiteFooter />
     </>
   );

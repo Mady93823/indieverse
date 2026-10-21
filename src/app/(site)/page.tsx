@@ -1,61 +1,104 @@
+import Link from "next/link";
+import { ArtistChip } from "@/components/site/artist-chip";
+import { Container } from "@/components/site/container";
 import { SearchBox } from "@/components/site/search-box";
-import { SongCard, SongGrid } from "@/components/site/song-card";
-import { getPopularSongs, getRecentSongs } from "@/lib/songs/queries";
+import { SongRow, SongShelf } from "@/components/site/song-card";
+import { getPopularSongs, getRecentSongs, getTopArtists } from "@/lib/songs/queries";
+import { cn } from "@/lib/utils";
 
-export default function HomePage() {
+// Every list here comes from a cached query, so the page is prerendered and refreshes
+// when an admin publishes or edits a song.
+export default async function HomePage() {
+  const [recent, popular, artists] = await Promise.all([
+    getRecentSongs(6),
+    getPopularSongs(5),
+    getTopArtists(10),
+  ]);
+  const suggestions = [
+    ...popular.slice(0, 2).map((song) => ({ label: song.title, href: `/songs/${song.slug}` })),
+    ...artists.slice(0, 2).map((artist) => ({ label: artist.name, href: `/artists/${artist.slug}` })),
+  ];
+
   return (
-    <div className="space-y-12">
-      <section className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 py-10 sm:px-10 sm:py-14">
-        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Tamil indie & I-pop lyrics, in <span lang="ta">தமிழ்</span> and English
+    <>
+      <Container className="flex flex-col gap-6 py-14 sm:py-20">
+        <h1 className="flex max-w-4xl flex-col gap-3">
+          <span lang="ta" className="font-display text-[clamp(2.5rem,7vw,5rem)] leading-[1.15] font-semibold text-balance">
+            பாட்டு வரிகள், உங்கள் மொழியில்
+          </span>
+          <span className="max-w-2xl text-lg text-pretty text-muted-foreground sm:text-xl">
+            Lyrics for Tamil indie and I-pop songs. Read them in Tamil script or in English letters.
+          </span>
         </h1>
-        <p className="mt-3 max-w-xl text-muted-foreground">
-          Find a song by its name or by the artist, then read the lyrics in the script you prefer.
-        </p>
-        <SearchBox size="lg" className="mt-6 max-w-xl" />
-      </section>
+        <SearchBox size="lg" className="max-w-2xl" />
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Try</span>
+            {suggestions.map((s) => (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="rounded-full border bg-card px-3.5 py-1.5 font-medium transition-colors outline-none hover:border-foreground/25 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {s.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </Container>
 
-      <RecentSongs />
-      <PopularSongs />
-    </div>
-  );
-}
-
-// Both lists come from cached queries, so they're part of the prerendered page
-// and refresh when an admin publishes or edits a song.
-async function RecentSongs() {
-  const songs = await getRecentSongs();
-  return (
-    <section aria-labelledby="recent-heading">
-      <h2 id="recent-heading" className="mb-4 text-xl font-semibold tracking-tight">
-        Recently added
-      </h2>
-      {songs.length === 0 ? (
-        <p className="text-muted-foreground">No songs yet. Check back soon.</p>
+      {recent.length === 0 ? (
+        <Container>
+          <p className="text-muted-foreground">No songs yet. New lyrics will appear here as soon as they’re published.</p>
+        </Container>
       ) : (
-        <SongGrid>
-          {songs.map((song) => (
-            <SongCard key={song.slug} song={song} />
-          ))}
-        </SongGrid>
+        <div className="flex flex-col gap-16">
+          <Container className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            {popular.length > 0 && (
+              <section aria-labelledby="popular-heading" className="flex min-w-0 flex-col gap-4 lg:col-span-4">
+                <SectionHeading id="popular-heading">Most read</SectionHeading>
+                <ol className="flex flex-col gap-1">
+                  {popular.map((song, i) => (
+                    <li key={song.slug}>
+                      <SongRow song={song} rank={i + 1} />
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            <section
+              aria-labelledby="recent-heading"
+              className={cn("flex min-w-0 flex-col gap-4", popular.length > 0 ? "lg:col-span-8" : "lg:col-span-12")}
+            >
+              <SectionHeading id="recent-heading">Just added</SectionHeading>
+              <SongShelf songs={recent} columns={popular.length > 0 ? 3 : 6} />
+            </section>
+          </Container>
+
+          {artists.length > 0 && (
+            <Container>
+              <section aria-labelledby="artists-heading" className="flex flex-col gap-4">
+                <SectionHeading id="artists-heading">Artists</SectionHeading>
+                <ul className="flex flex-wrap gap-3">
+                  {artists.map((artist) => (
+                    <li key={artist.slug}>
+                      <ArtistChip {...artist} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </Container>
+          )}
+        </div>
       )}
-    </section>
+    </>
   );
 }
 
-async function PopularSongs() {
-  const songs = await getPopularSongs();
-  if (songs.length === 0) return null;
+function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <section aria-labelledby="popular-heading">
-      <h2 id="popular-heading" className="mb-4 text-xl font-semibold tracking-tight">
-        Popular
-      </h2>
-      <SongGrid>
-        {songs.map((song) => (
-          <SongCard key={song.slug} song={song} />
-        ))}
-      </SongGrid>
-    </section>
+    <h2 id={id} className="font-display text-2xl font-semibold tracking-tight">
+      {children}
+    </h2>
   );
 }

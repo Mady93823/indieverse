@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { SongCard, SongGrid } from "@/components/site/song-card";
+import { ArtistMonogram } from "@/components/site/artist-chip";
+import { Container } from "@/components/site/container";
+import { SongRow } from "@/components/site/song-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getArtistBySlug } from "@/lib/songs/queries";
 import type { CreditRole } from "@/generated/prisma/client";
 
-const ROLE_LABELS: Record<CreditRole, string> = {
-  SINGER: "Singer",
-  MUSIC: "Music",
-  LYRICS: "Lyrics",
-};
+const ROLE_NOUNS: Record<CreditRole, string> = { SINGER: "singer", MUSIC: "composer", LYRICS: "lyricist" };
+const ROLE_ORDER: CreditRole[] = ["SINGER", "MUSIC", "LYRICS"];
+const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 
 export async function generateMetadata({ params }: PageProps<"/artists/[slug]">): Promise<Metadata> {
   const artist = await getArtistBySlug((await params).slug);
@@ -34,41 +34,55 @@ async function ArtistContent({ params }: Pick<PageProps<"/artists/[slug]">, "par
   const artist = await getArtistBySlug((await params).slug);
   if (!artist) notFound();
 
+  const roles = ROLE_ORDER.filter((role) => artist.songs.some((song) => song.roles.includes(role)));
+  const count = artist.songs.length;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Artist</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{artist.name}</h1>
-        <p className="mt-1 text-muted-foreground">
-          {artist.songs.length} {artist.songs.length === 1 ? "song" : "songs"}
-        </p>
-      </div>
-      <SongGrid>
+    <Container className="flex flex-col gap-10 py-10 sm:py-14">
+      <header className="flex items-center gap-5">
+        <ArtistMonogram name={artist.name} slug={artist.slug} className="size-20 text-4xl sm:size-24 sm:text-5xl" />
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="font-display text-4xl font-semibold tracking-tight text-balance break-words sm:text-5xl">
+            {artist.name}
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            {count} {count === 1 ? "song" : "songs"} as {listFormat.format(roles.map((r) => ROLE_NOUNS[r]))}
+          </p>
+        </div>
+      </header>
+      <ul className="flex max-w-2xl flex-col gap-1">
         {artist.songs.map((song) => (
-          <SongCard
-            key={song.slug}
-            song={song}
-            footer={
-              <p className="text-xs text-muted-foreground">
-                {song.roles.map((role) => ROLE_LABELS[role]).join(" · ")}
-              </p>
-            }
-          />
+          <li key={song.slug}>
+            <SongRow
+              song={song}
+              detail={capitalize(listFormat.format(ROLE_ORDER.filter((r) => song.roles.includes(r)).map((r) => ROLE_NOUNS[r])))}
+            />
+          </li>
         ))}
-      </SongGrid>
-    </div>
+      </ul>
+    </Container>
   );
+}
+
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function ArtistSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-10 w-64" />
-      <SongGrid>
-        {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-xl" />
+    <Container className="flex flex-col gap-10 py-10 sm:py-14">
+      <div className="flex items-center gap-5">
+        <Skeleton className="size-20 rounded-full sm:size-24" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-10 w-56" />
+          <Skeleton className="h-5 w-40" />
+        </div>
+      </div>
+      <div className="flex max-w-2xl flex-col gap-3">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-16 rounded-xl" />
         ))}
-      </SongGrid>
-    </div>
+      </div>
+    </Container>
   );
 }

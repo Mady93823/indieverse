@@ -1,22 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Tamil } from "next/font/google";
+import { Arima, Catamaran } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Both families were designed for Tamil and Latin together, so the two scripts match.
+const catamaran = Catamaran({
+  variable: "--font-catamaran",
+  subsets: ["latin", "tamil"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Geist has no Tamil letters; the browser falls back to this font for them.
-const notoTamil = Noto_Sans_Tamil({
-  variable: "--font-tamil",
-  subsets: ["tamil"],
+const arima = Arima({
+  variable: "--font-arima",
+  subsets: ["latin", "tamil"],
 });
 
 export const metadata: Metadata = {
@@ -32,18 +27,21 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fbfbfe" },
+    { media: "(prefers-color-scheme: dark)", color: "#121029" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${notoTamil.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${catamaran.variable} ${arima.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only rounded-lg bg-background px-4 py-2 font-medium shadow-lg ring-2 ring-ring focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50"
+        >
+          Skip to content
+        </a>
         {children}
         <Toaster position="top-center" />
       </body>

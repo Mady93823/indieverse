@@ -1,3 +1,4 @@
+import { Container } from "@/components/site/container";
 import { NotFoundMessage } from "@/components/site/not-found-message";
 import { SiteFooter, SiteHeader } from "@/components/site/site-header";
 
@@ -6,8 +7,10 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4">
-        <NotFoundMessage />
+      <main id="main" className="flex-1">
+        <Container>
+          <NotFoundMessage />
+        </Container>
       </main>
       <SiteFooter />
     </>

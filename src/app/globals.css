@@ -5,12 +5,21 @@
 /* Follow the visitor's device setting for light/dark. */
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
+/*
+ * "Marigold & Ink": deep indigo ink on cool paper, marigold for "you are here" states
+ * (active lyrics language, chart numbers, the logo). Each song page adds its own tint
+ * from the cover art (see .song-band). Fonts are designed for Tamil and Latin together:
+ * Catamaran for text and lyrics, Arima for titles.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), var(--font-tamil), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans), var(--font-tamil), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-catamaran), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-arima), var(--font-catamaran), ui-serif, serif;
+  --font-display: var(--font-arima), var(--font-catamaran), ui-serif, serif;
+  --color-marigold: var(--marigold);
+  --color-marigold-foreground: var(--marigold-foreground);
+  --color-marigold-text: var(--marigold-text);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -47,90 +56,126 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Strong ease-out for UI that answers a tap. */
+  --ease-snap: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.5 0.21 285);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #fbfbfe; /* paper */
+  --foreground: #1c1a3d; /* ink */
+  --card: #ffffff;
+  --card-foreground: #1c1a3d;
+  --popover: #ffffff;
+  --popover-foreground: #1c1a3d;
+  --primary: #1c1a3d;
+  --primary-foreground: #fbfbfe;
+  --secondary: #eeedf6; /* mist */
+  --secondary-foreground: #1c1a3d;
+  --muted: #eeedf6;
+  --muted-foreground: #5e5b7e;
+  --accent: #eeedf6;
+  --accent-foreground: #1c1a3d;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.65 0.17 285);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: #dedceb;
+  --input: #c9c6dc;
+  --ring: #5b53d6;
+  --marigold: #f2a516;
+  --marigold-foreground: #2b1d00;
+  /* Marigold dark enough for text on paper (4.9:1). */
+  --marigold-text: #9a6200;
+  /* How strongly a song's cover colour tints its page header. */
+  --song-tint: 30%;
+  --chart-1: #f2a516;
+  --chart-2: #5b53d6;
+  --chart-3: #1c1a3d;
+  --chart-4: #9a6200;
+  --chart-5: #5e5b7e;
+  --radius: 0.75rem;
+  --sidebar: #f5f4fa;
+  --sidebar-foreground: #1c1a3d;
+  --sidebar-primary: #1c1a3d;
+  --sidebar-primary-foreground: #fbfbfe;
+  --sidebar-accent: #eeedf6;
+  --sidebar-accent-foreground: #1c1a3d;
+  --sidebar-border: #dedceb;
+  --sidebar-ring: #5b53d6;
 }
 
 @media (prefers-color-scheme: dark) {
-:root {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.74 0.15 285);
-  --primary-foreground: oklch(0.2 0.05 285);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+  :root {
+    --background: #121029; /* night ink */
+    --foreground: #eceaf8;
+    --card: #1a1836;
+    --card-foreground: #eceaf8;
+    --popover: #1a1836;
+    --popover-foreground: #eceaf8;
+    --primary: #eceaf8;
+    --primary-foreground: #121029;
+    --secondary: #221f45;
+    --secondary-foreground: #eceaf8;
+    --muted: #221f45;
+    --muted-foreground: #a6a3c6;
+    --accent: #221f45;
+    --accent-foreground: #eceaf8;
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: #2e2a55;
+    --input: #3e3a6b;
+    --ring: #9d97ff;
+    --marigold: #f5b53a;
+    --marigold-foreground: #221600;
+    --marigold-text: #f5b53a;
+    --song-tint: 38%;
+    --chart-1: #f5b53a;
+    --chart-2: #9d97ff;
+    --chart-3: #eceaf8;
+    --chart-4: #c98a1a;
+    --chart-5: #a6a3c6;
+    --sidebar: #17152f;
+    --sidebar-foreground: #eceaf8;
+    --sidebar-primary: #eceaf8;
+    --sidebar-primary-foreground: #121029;
+    --sidebar-accent: #221f45;
+    --sidebar-accent-foreground: #eceaf8;
+    --sidebar-border: #2e2a55;
+    --sidebar-ring: #9d97ff;
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-  button:not(:disabled), [role="button"]:not(:disabled) {
-    cursor: pointer;
-  }
   html {
+    /* Native form controls and scrollbars follow the theme too. */
+    color-scheme: light dark;
     @apply font-sans;
   }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a,
+  button,
+  input,
+  [role="tab"] {
+    /* Removes the double-tap zoom delay on phones. */
+    touch-action: manipulation;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Song page header: fades from the cover's colour into the page. */
+.song-band {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--song-color, var(--muted)) var(--song-tint), var(--background)),
+    var(--background)
+  );
+}
+
+.song-cover-glow {
+  box-shadow: 0 28px 56px -28px color-mix(in oklab, var(--song-color, #000) 75%, transparent);
 }

@@ -42,6 +42,18 @@ export async function deleteCover(publicPath: string | null | undefined) {
   if (file) await unlink(file).catch(() => {});
 }
 
+/** The cover's main colour as "#rrggbb", used to tint the song page. Null when there's no cover. */
+export async function getCoverColor(publicPath: string | null): Promise<string | null> {
+  const file = publicPath && resolveUploadPath(publicPath.replace(/^\/uploads\//, "").split("/"));
+  if (!file) return null;
+  try {
+    const { dominant } = await sharp(file).stats();
+    return `#${[dominant.r, dominant.g, dominant.b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Maps URL segments to a file on disk. Only names this module generates
  * ("covers/<uuid>.webp") are accepted, so "../" and other paths can't escape the folder.

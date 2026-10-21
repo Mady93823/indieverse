@@ -32,7 +32,7 @@ export default async function AdminPanelLayout({ children }: LayoutProps<"/admin
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
     </>
   );
 }
