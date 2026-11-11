@@ -14,24 +14,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-export function DeleteSongButton({ title, action }: { title: string; action: () => Promise<void> }) {
+/** A destructive button that asks for confirmation before running the action. */
+export function DeleteButton({
+  label,
+  title,
+  description,
+  keepLabel,
+  action,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  keepLabel: string;
+  action: () => Promise<void>;
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant="destructive" className="h-9">
           <Trash2Icon data-icon="inline-start" aria-hidden />
-          Delete song
+          {label}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete “{title}”?</AlertDialogTitle>
-          <AlertDialogDescription>
-            The song, its lyrics and its cover image will be removed from the site. This can’t be undone.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep song</AlertDialogCancel>
+          <AlertDialogCancel>{keepLabel}</AlertDialogCancel>
           {/* A plain submit button: AlertDialogAction would close the dialog before the form submits. */}
           <form action={action}>
             <ConfirmButton />

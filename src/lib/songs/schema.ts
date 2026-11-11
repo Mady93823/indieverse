@@ -65,6 +65,12 @@ export const songFormSchema = z
     spotifyUrl: optionalLink,
     lyricsTamil: lyrics,
     lyricsTanglish: lyrics,
+    about: z.string().max(3000, "Keep this under 3000 characters").transform((v) => normalizeLyrics(v) || null),
+    seoTitle: optionalText(70),
+    seoDescription: optionalText(200),
+    featured: z.boolean(),
+    hideAds: z.boolean(),
+    adminNote: optionalText(1000),
     removeCover: z.boolean(),
   })
   .superRefine((song, ctx) => {

@@ -10,9 +10,7 @@ import { text } from "node:stream/consumers";
 if (existsSync(".env")) process.loadEnvFile(".env");
 
 const { db } = await import("../src/lib/db");
-const { hashPassword } = await import("../src/lib/auth/password");
-
-const MIN_PASSWORD_LENGTH = 10;
+const { hashPassword, MIN_PASSWORD_LENGTH } = await import("../src/lib/auth/password");
 
 // When input is piped (e.g. on a server without a terminal), read the answers line by line.
 const pipedLines = stdin.isTTY ? null : (await text(stdin)).split(/\r?\n/);

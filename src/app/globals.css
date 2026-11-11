@@ -6,17 +6,21 @@
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 /*
- * "Marigold & Ink": deep indigo ink on cool paper, marigold for "you are here" states
- * (active lyrics language, chart numbers, the logo). Each song page adds its own tint
- * from the cover art (see .song-band). Fonts are designed for Tamil and Latin together:
- * Catamaran for text and lyrics, Arima for titles.
+ * Two looks share these tokens:
+ * - the admin: "Marigold & Ink", indigo ink on cool paper, following the device's light/dark setting;
+ * - the public site: the client's "Isai Varigal" design, always dark with pink accents (.site below).
+ * Inter sets Latin text; Tamil letters fall through to Noto Sans Tamil.
  */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-catamaran), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-arima), var(--font-catamaran), ui-serif, serif;
-  --font-display: var(--font-arima), var(--font-catamaran), ui-serif, serif;
+  --font-sans: var(--font-inter), var(--font-noto-tamil), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), var(--font-noto-tamil), ui-sans-serif, sans-serif;
+  --font-display: var(--font-inter), var(--font-noto-tamil), ui-sans-serif, sans-serif;
+  --color-pink: var(--pink);
+  --color-surface-deep: var(--surface-deep);
+  --color-maroon: var(--maroon);
+  --color-wine: var(--wine);
   --color-marigold: var(--marigold);
   --color-marigold-foreground: var(--marigold-foreground);
   --color-marigold-text: var(--marigold-text);
@@ -167,15 +171,46 @@
   }
 }
 
-/* Song page header: fades from the cover's colour into the page. */
-.song-band {
-  background: linear-gradient(
-    to bottom,
-    color-mix(in oklab, var(--song-color, var(--muted)) var(--song-tint), var(--background)),
-    var(--background)
-  );
+/*
+ * The public site (the (site) layout, admin previews and the 404 page): a light reading page,
+ * ink text, one pink accent. Pink (#d92a57) is dark enough for text and for white-on-pink buttons
+ * (4.7:1 on white either way).
+ */
+.site {
+  color-scheme: light;
+  --background: #fbfaf8;
+  --foreground: #17151c;
+  --card: #ffffff;
+  --card-foreground: #17151c;
+  --popover: #ffffff;
+  --popover-foreground: #17151c;
+  --primary: #d92a57;
+  --primary-foreground: #ffffff;
+  --secondary: #f2efeb;
+  --secondary-foreground: #17151c;
+  --muted: #f2efeb;
+  --muted-foreground: #625d68;
+  --accent: #f2efeb;
+  --accent-foreground: #17151c;
+  --border: #e7e2dc;
+  --input: #d8d2cb;
+  --ring: #d92a57;
+  --pink: #d92a57;
+  --surface-deep: #ffffff;
+  --maroon: #fdf1f4;
+  --wine: #fbe8ee;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
-.song-cover-glow {
-  box-shadow: 0 28px 56px -28px color-mix(in oklab, var(--song-color, #000) 75%, transparent);
+/* Small uppercase label above a few titles. */
+@utility eyebrow {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* Kerning pairs (like "AT") look like gaps once letters are spaced this wide. */
+  font-kerning: none;
+  color: var(--pink);
 }

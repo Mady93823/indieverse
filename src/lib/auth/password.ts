@@ -3,6 +3,8 @@ import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:c
 // Uses Node's built-in scrypt, so there's no hashing library to keep updated.
 // Stored format: scrypt$N$r$p$salt$hash (base64), so parameters can be raised later
 // without breaking existing passwords.
+export const MIN_PASSWORD_LENGTH = 10;
+
 const N = 2 ** 15;
 const R = 8;
 const P = 1;

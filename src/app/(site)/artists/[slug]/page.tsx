@@ -1,24 +1,38 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
-import { ArtistMonogram } from "@/components/site/artist-chip";
+import { ArtistView } from "@/components/site/artist-view";
 import { Container } from "@/components/site/container";
-import { SongRow } from "@/components/site/song-card";
+import { JsonLd } from "@/components/site/json-ld";
 import { Skeleton } from "@/components/ui/skeleton";
+import { findRedirect } from "@/lib/redirects";
+import { artistJsonLd } from "@/lib/seo/json-ld";
+import { getSiteInfo } from "@/lib/seo/site";
 import { getArtistBySlug } from "@/lib/songs/queries";
-import type { CreditRole } from "@/generated/prisma/client";
 
-const ROLE_NOUNS: Record<CreditRole, string> = { SINGER: "singer", MUSIC: "composer", LYRICS: "lyricist" };
-const ROLE_ORDER: CreditRole[] = ["SINGER", "MUSIC", "LYRICS"];
 const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
 
 export async function generateMetadata({ params }: PageProps<"/artists/[slug]">): Promise<Metadata> {
   const artist = await getArtistBySlug((await params).slug);
   if (!artist) return { title: "Artist not found" };
+
+  const name = artist.nameTamil ? `${artist.name} (${artist.nameTamil})` : artist.name;
+  const titles = artist.songs.slice(0, 3).map((song) => song.title);
+  const description = artist.bio
+    ? truncate(artist.bio.replace(/\s+/g, " "), 160)
+    : `Lyrics of ${artist.songs.length} ${artist.songs.length === 1 ? "song" : "songs"} by ${name} in Tamil and English, including ${listFormat.format(titles)}.`;
+
   return {
-    title: `${artist.name} Song Lyrics`,
-    description: `Lyrics of songs by ${artist.name}, in Tamil and English.`,
+    title: `${name} Songs Lyrics`,
+    description,
     alternates: { canonical: `/artists/${artist.slug}` },
+    openGraph: {
+      title: `${name} Songs Lyrics`,
+      description,
+      type: "profile",
+      url: `/artists/${artist.slug}`,
+      images: artist.photo ? [{ url: artist.photo, width: 480, height: 480 }] : undefined,
+    },
   };
 }
 
@@ -31,41 +45,25 @@ export default function ArtistPage({ params }: PageProps<"/artists/[slug]">) {
 }
 
 async function ArtistContent({ params }: Pick<PageProps<"/artists/[slug]">, "params">) {
-  const artist = await getArtistBySlug((await params).slug);
-  if (!artist) notFound();
-
-  const roles = ROLE_ORDER.filter((role) => artist.songs.some((song) => song.roles.includes(role)));
-  const count = artist.songs.length;
+  const { slug } = await params;
+  const [artist, site] = await Promise.all([getArtistBySlug(slug), getSiteInfo()]);
+  if (!artist) {
+    // Renamed or merged artists forward to their current page.
+    const moved = await findRedirect(`/artists/${slug}`);
+    if (moved) permanentRedirect(moved);
+    notFound();
+  }
 
   return (
-    <Container className="flex flex-col gap-10 py-10 sm:py-14">
-      <header className="flex items-center gap-5">
-        <ArtistMonogram name={artist.name} slug={artist.slug} className="size-20 text-4xl sm:size-24 sm:text-5xl" />
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="font-display text-4xl font-semibold tracking-tight text-balance break-words sm:text-5xl">
-            {artist.name}
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            {count} {count === 1 ? "song" : "songs"} as {listFormat.format(roles.map((r) => ROLE_NOUNS[r]))}
-          </p>
-        </div>
-      </header>
-      <ul className="flex max-w-2xl flex-col gap-1">
-        {artist.songs.map((song) => (
-          <li key={song.slug}>
-            <SongRow
-              song={song}
-              detail={capitalize(listFormat.format(ROLE_ORDER.filter((r) => song.roles.includes(r)).map((r) => ROLE_NOUNS[r])))}
-            />
-          </li>
-        ))}
-      </ul>
-    </Container>
+    <>
+      <JsonLd data={artistJsonLd(artist, site)} />
+      <ArtistView artist={artist} />
+    </>
   );
 }
 
-function capitalize(text: string) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+function truncate(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
 function ArtistSkeleton() {

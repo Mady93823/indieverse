@@ -53,11 +53,11 @@ export function LiveSearchInput() {
           const next = event.target.value;
           timer.current = setTimeout(() => search(next), TYPING_PAUSE_MS);
         }}
-        placeholder="Search a song or artist…"
-        aria-label="Search songs or artists"
+        placeholder="Song, film, singer, composer or lyricist…"
+        aria-label="Search songs, films and artists"
         autoComplete="off"
         enterKeyHint="search"
-        className="h-14 rounded-2xl bg-card pr-12 pl-12 text-lg shadow-sm md:text-lg"
+        className="h-14 rounded-full bg-card pr-12 pl-12 text-lg shadow-sm md:text-lg"
       />
       {pending && (
         <Loader2Icon

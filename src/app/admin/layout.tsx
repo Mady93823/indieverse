@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const instant = false;
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s | IndieVerse Admin" },
+  title: { default: "Admin", template: "%s | Admin" },
   robots: { index: false, follow: false },
 };
 

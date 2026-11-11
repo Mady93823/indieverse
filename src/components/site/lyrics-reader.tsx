@@ -2,43 +2,27 @@
 
 import { Fragment } from "react";
 import { AArrowDownIcon, AArrowUpIcon } from "lucide-react";
-import { Tabs as TabsPrimitive } from "radix-ui";
+import { LyricsModeToggle, useLyricsMode } from "@/components/site/lyrics-mode";
 import { useStoredPreference } from "@/components/site/stored-preference";
 import { Button } from "@/components/ui/button";
+import { takeLines, type Verse } from "@/lib/lyrics";
 import { cn } from "@/lib/utils";
 
-const LANGS = ["ta", "en"] as const;
 // Text sizes in px. People often read along on a phone while the song plays, so bigger is offered.
-const SIZES = ["17", "19", "21", "24", "27"] as const;
+const SIZES = ["18", "20", "22", "25", "28"] as const;
+const INTERLUDE_AFTER = 3;
+const INTERLUDE_MIN_VERSES = 5;
 
-export function LyricsReader({ tamil, english }: { tamil: string; english: string }) {
-  const [lang, setLang] = useStoredPreference("lyrics-lang", LANGS, "ta");
-  const [size, setSize] = useStoredPreference("lyrics-size", SIZES, "21");
+/** The song page's lyrics: a sticky bar with the Tamil/Tanglish switch and text size, then every verse. */
+export function LyricsReader({ verses, interlude }: { verses: Verse[]; interlude?: React.ReactNode }) {
+  const [size, setSize] = useStoredPreference("lyrics-size", SIZES, "22");
   const sizeIndex = SIZES.indexOf(size);
 
   return (
-    <TabsPrimitive.Root value={lang} onValueChange={(value) => setLang(value as (typeof LANGS)[number])}>
-      {/* Stays at the top while reading, so switching language or size is always one tap away. */}
-      <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 border-b bg-background/85 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
-        <TabsPrimitive.List
-          aria-label="Lyrics language"
-          className="relative grid h-11 w-56 grid-cols-2 rounded-full bg-muted p-1"
-        >
-          {/* The marigold pill slides to the chosen language. */}
-          <span
-            aria-hidden
-            className={cn(
-              "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-marigold shadow-sm",
-              "transition-transform duration-200 ease-(--ease-snap) motion-reduce:transition-none",
-              lang === "en" && "translate-x-full",
-            )}
-          />
-          <LangTab value="ta" lang="ta">
-            தமிழ்
-          </LangTab>
-          <LangTab value="en">English</LangTab>
-        </TabsPrimitive.List>
-
+    <div>
+      {/* Stays at the top while reading, so switching script or size is always one tap away. */}
+      <div className="sticky top-18 z-10 -mx-4 flex items-center justify-between gap-2 border-b bg-background/90 px-4 py-2.5 backdrop-blur-md sm:mx-0 sm:px-0">
+        <LyricsModeToggle />
         <div role="group" aria-label="Text size" className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -60,65 +44,78 @@ export function LyricsReader({ tamil, english }: { tamil: string; english: strin
           </Button>
         </div>
       </div>
-
-      {/* Both versions stay in the page (forceMount) so search engines index them; CSS hides the other. */}
-      <LyricsPanel value="ta" lang="ta" text={tamil} size={size} className="leading-[1.95]" />
-      <LyricsPanel value="en" lang="ta-Latn" text={english} size={size} className="leading-[1.8]" />
-    </TabsPrimitive.Root>
+      <LyricLines verses={verses} size={size} interlude={interlude} className="max-w-3xl pt-6" />
+    </div>
   );
 }
 
-function LangTab({ value, lang, children }: { value: string; lang?: string; children: React.ReactNode }) {
-  return (
-    <TabsPrimitive.Trigger
-      value={value}
-      lang={lang}
-      className={cn(
-        "relative z-10 rounded-full text-base font-semibold text-muted-foreground outline-none",
-        "transition-colors duration-200 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
-        "data-[state=active]:text-marigold-foreground",
-      )}
-    >
-      {children}
-    </TabsPrimitive.Trigger>
-  );
-}
-
-function LyricsPanel({
-  value,
-  lang,
-  text,
+/**
+ * Verses as Tamil lines with their Tanglish underneath. Both scripts are always in the page
+ * (so search engines index both); the chosen mode only hides one with CSS.
+ * `maxLines` shows just the start, for the home page.
+ */
+export function LyricLines({
+  verses,
   size,
+  maxLines,
+  highlightFirst = false,
+  meta,
+  interlude,
   className,
 }: {
-  value: string;
-  lang: string;
-  text: string;
-  size: string;
+  verses: Verse[];
+  size?: string;
+  maxLines?: number;
+  highlightFirst?: boolean;
+  /** Shown at the right of the first verse's label, e.g. "6 of 18 lines". */
+  meta?: React.ReactNode;
+  interlude?: React.ReactNode;
   className?: string;
 }) {
+  const [mode] = useLyricsMode();
+  const shown = maxLines ? takeLines(verses, maxLines) : verses;
+
   return (
-    <TabsPrimitive.Content
-      value={value}
-      forceMount
-      lang={lang}
-      style={{ fontSize: `${size}px` }}
-      className={cn(
-        "max-w-2xl pt-8 outline-none data-[state=inactive]:hidden",
-        "data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-200 motion-reduce:animate-none",
-        className,
-      )}
+    <div
+      data-mode={mode}
+      style={size ? { fontSize: `${size}px` } : undefined}
+      className={cn("group/lyrics flex flex-col", className)}
     >
-      {text.split(/\n{2,}/).map((verse, i) => (
-        <p key={i} className="mb-[1.1em] text-pretty">
-          {verse.split("\n").map((line, j) => (
-            <Fragment key={j}>
-              {j > 0 && <br />}
-              {line}
-            </Fragment>
-          ))}
-        </p>
+      {shown.map((verse, v) => (
+        <Fragment key={v}>
+          <section aria-label={`Verse ${v + 1}`} className="pb-7">
+            <div className="mb-2 flex items-baseline justify-between gap-4 text-xs text-muted-foreground">
+              <p className="font-semibold tracking-[0.08em] uppercase">Verse {v + 1}</p>
+              {v === 0 && meta}
+            </div>
+            {verse.map((line, i) => (
+              <div
+                key={i}
+                className="border-b border-border/70 py-[0.55em] last:border-0 group-data-[mode=en]/lyrics:border-0 group-data-[mode=en]/lyrics:py-[0.15em] group-data-[mode=ta]/lyrics:border-0 group-data-[mode=ta]/lyrics:py-[0.15em]"
+              >
+                {line.ta && (
+                  <p lang="ta" className="leading-[1.65] text-pretty group-data-[mode=en]/lyrics:hidden">
+                    {line.ta}
+                  </p>
+                )}
+                {line.en && (
+                  <p
+                    lang="ta-Latn"
+                    className={cn(
+                      "mt-[0.2em] text-[0.72em] leading-snug text-pretty text-muted-foreground group-data-[mode=ta]/lyrics:hidden",
+                      "group-data-[mode=en]/lyrics:mt-0 group-data-[mode=en]/lyrics:text-[1em] group-data-[mode=en]/lyrics:leading-[1.65] group-data-[mode=en]/lyrics:text-foreground",
+                      highlightFirst && v === 0 && i === 0 && "text-pink",
+                    )}
+                  >
+                    {line.en}
+                  </p>
+                )}
+              </div>
+            ))}
+          </section>
+          {v === INTERLUDE_AFTER - 1 && verses.length >= INTERLUDE_MIN_VERSES && !maxLines && interlude}
+        </Fragment>
       ))}
-    </TabsPrimitive.Content>
+    </div>
   );
 }

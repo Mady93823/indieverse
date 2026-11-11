@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ArtistChip } from "@/components/site/artist-chip";
 import { Container } from "@/components/site/container";
 import { LiveSearchInput } from "@/components/site/live-search-input";
-import { SongRow } from "@/components/site/song-card";
+import { LyricCard, RankCard } from "@/components/site/song-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPopularSongs, searchArtists, searchSongs } from "@/lib/songs/queries";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,10 @@ export const metadata: Metadata = {
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
-    <Container className="flex flex-col gap-10 py-10 sm:py-14">
-      <div className="flex max-w-2xl flex-col gap-5">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Search</h1>
-        <Suspense fallback={<Skeleton className="h-14 rounded-2xl" />}>
+    <Container className="flex flex-col gap-10 py-12 sm:py-16">
+      <div className="flex max-w-3xl flex-col gap-5">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Find a song</h1>
+        <Suspense fallback={<Skeleton className="h-14 rounded-full" />}>
           <LiveSearchInput />
         </Suspense>
       </div>
@@ -37,14 +37,14 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/search">, "searc
     const popular = await getPopularSongs(5);
     if (popular.length === 0) return null;
     return (
-      <section aria-labelledby="popular-heading" className="flex max-w-2xl flex-col gap-3">
-        <h2 id="popular-heading" className="font-display text-2xl font-semibold tracking-tight">
+      <section aria-labelledby="popular-heading" className="flex flex-col gap-4">
+        <h2 id="popular-heading" className="text-2xl font-semibold tracking-tight">
           Most read
         </h2>
-        <ol className="flex flex-col gap-1">
+        <ol className="grid gap-3.5 lg:max-w-[864px] lg:grid-cols-2">
           {popular.map((song, i) => (
             <li key={song.slug}>
-              <SongRow song={song} rank={i + 1} />
+              <RankCard song={song} rank={i + 1} />
             </li>
           ))}
         </ol>
@@ -59,7 +59,7 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/search">, "searc
       : `${songs.length} ${songs.length === 1 ? "song" : "songs"} found for “${query}”.`;
 
   return (
-    <div className="flex max-w-2xl flex-col gap-10">
+    <div className="flex flex-col gap-10">
       {/* Announced to screen readers as results update while typing. */}
       <p role="status" className={cn(songs.length || artists.length ? "sr-only" : "font-medium")}>
         {summary}
@@ -72,7 +72,7 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/search">, "searc
       )}
       {artists.length > 0 && (
         <section aria-labelledby="artist-results" className="flex flex-col gap-3">
-          <h2 id="artist-results" className="font-display text-2xl font-semibold tracking-tight">
+          <h2 id="artist-results" className="text-2xl font-semibold tracking-tight">
             Artists
           </h2>
           <ul className="flex flex-wrap gap-3">
@@ -86,13 +86,13 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/search">, "searc
       )}
       {songs.length > 0 && (
         <section aria-labelledby="song-results" className="flex flex-col gap-3">
-          <h2 id="song-results" className="font-display text-2xl font-semibold tracking-tight">
+          <h2 id="song-results" className="text-2xl font-semibold tracking-tight">
             {songs.length} {songs.length === 1 ? "song" : "songs"}
           </h2>
-          <ul className="flex flex-col gap-1">
+          <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {songs.map((song) => (
               <li key={song.slug}>
-                <SongRow song={song} />
+                <LyricCard song={song} />
               </li>
             ))}
           </ul>
@@ -104,15 +104,9 @@ async function SearchResults({ searchParams }: Pick<PageProps<"/search">, "searc
 
 function ResultsSkeleton() {
   return (
-    <div className="flex max-w-2xl flex-col gap-3">
-      {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="flex items-center gap-4">
-          <Skeleton className="size-14 rounded-lg" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-5 w-1/2" />
-            <Skeleton className="h-4 w-1/3" />
-          </div>
-        </div>
+    <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }, (_, i) => (
+        <Skeleton key={i} className="h-[84px] rounded-2xl" />
       ))}
     </div>
   );

@@ -5,17 +5,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { REDIRECTS_TAG, addRedirect, clearRedirect } from "@/lib/redirects";
+import { findOrCreateArtist, removeOrphanArtists } from "@/lib/artists/helpers";
 import { slugify } from "@/lib/slug";
 import { SONGS_TAG } from "@/lib/songs/queries";
 import { songFormSchema, type SongFormState } from "@/lib/songs/schema";
 import type { CreditRole, Prisma } from "@/generated/prisma/client";
-import {
-  COVER_TYPES,
-  InvalidImageError,
-  MAX_COVER_BYTES,
-  deleteCover,
-  saveCover,
-} from "@/lib/uploads";
+import { InvalidImageError, checkImageFile, deleteCover, saveCover } from "@/lib/uploads";
 
 /** Creates a song (songId null) or updates one. Bound with the id by the edit page. */
 export async function saveSong(
@@ -40,7 +36,13 @@ export async function saveSong(
     spotifyUrl: text("spotifyUrl"),
     lyricsTamil: text("lyricsTamil"),
     lyricsTanglish: text("lyricsTanglish"),
-    removeCover: formData.get("removeCover") === "on",
+    about: text("about"),
+    seoTitle: text("seoTitle"),
+    seoDescription: text("seoDescription"),
+    featured: formData.get("featured") === "on",
+    hideAds: formData.get("hideAds") === "on",
+    adminNote: text("adminNote"),
+    removeCover: formData.get("coverRemove") === "on",
   });
   if (!parsed.success) {
     return { error: "Please fix the highlighted fields.", fieldErrors: z.flattenError(parsed.error).fieldErrors };
@@ -48,20 +50,14 @@ export async function saveSong(
   const input = parsed.data;
 
   const existing = songId
-    ? await db.song.findUnique({ where: { id: songId }, select: { coverImage: true, publishedAt: true } })
+    ? await db.song.findUnique({ where: { id: songId }, select: { slug: true, coverImage: true, publishedAt: true } })
     : null;
   if (songId && !existing) return { error: "This song no longer exists." };
 
   const cover = formData.get("cover");
   const hasNewCover = cover instanceof File && cover.size > 0;
-  if (hasNewCover) {
-    if (!COVER_TYPES.includes(cover.type)) {
-      return { fieldErrors: { cover: ["Use a JPG, PNG or WebP image"] } };
-    }
-    if (cover.size > MAX_COVER_BYTES) {
-      return { fieldErrors: { cover: ["The image must be 5 MB or smaller"] } };
-    }
-  }
+  const coverProblem = hasNewCover && checkImageFile(cover);
+  if (coverProblem) return { fieldErrors: { cover: [coverProblem] } };
 
   let newCover: string | null = null;
   if (hasNewCover) {
@@ -86,6 +82,12 @@ export async function saveSong(
     coverImage,
     lyricsTamil: input.lyricsTamil,
     lyricsTanglish: input.lyricsTanglish,
+    about: input.about,
+    seoTitle: input.seoTitle,
+    seoDescription: input.seoDescription,
+    featured: input.featured,
+    hideAds: input.hideAds,
+    adminNote: input.adminNote,
     status: publishing ? "PUBLISHED" : "DRAFT",
     // Keep the first publish date, so fixing a typo doesn't bump the song back to "recent".
     publishedAt: publishing ? (existing?.publishedAt ?? new Date()) : (existing?.publishedAt ?? null),
@@ -97,6 +99,12 @@ export async function saveSong(
         ? await tx.song.update({ where: { id: songId }, data })
         : await tx.song.create({ data });
 
+      // Once a song has been public, its old address keeps working after the link changes.
+      await clearRedirect(tx, `/songs/${song.slug}`);
+      if (existing?.publishedAt && existing.slug !== song.slug) {
+        await addRedirect(tx, `/songs/${existing.slug}`, `/songs/${song.slug}`);
+      }
+
       await tx.songCredit.deleteMany({ where: { songId: song.id } });
       const roles: [CreditRole, string[]][] = [
         ["SINGER", input.singers],
@@ -105,14 +113,8 @@ export async function saveSong(
       ];
       for (const [role, names] of roles) {
         for (const [position, name] of names.entries()) {
-          const slug = slugify(name);
-          if (!slug) continue;
-          // Typing an existing artist's name links to them; a new name creates the artist.
-          const artist = await tx.artist.upsert({
-            where: { slug },
-            update: {},
-            create: { name, slug },
-          });
+          const artist = await findOrCreateArtist(tx, name);
+          if (!artist) continue;
           await tx.songCredit.upsert({
             where: { songId_artistId_role: { songId: song.id, artistId: artist.id, role } },
             update: {},
@@ -132,7 +134,8 @@ export async function saveSong(
   }
 
   updateTag(SONGS_TAG);
-  redirect(`/admin?toast=${publishing ? "published" : "saved"}`);
+  updateTag(REDIRECTS_TAG);
+  redirect(`/admin/songs?toast=${publishing ? "published" : "saved"}`);
 }
 
 export async function deleteSong(songId: number) {
@@ -147,12 +150,7 @@ export async function deleteSong(songId: number) {
     await deleteCover(song.coverImage);
     updateTag(SONGS_TAG);
   }
-  redirect("/admin?toast=deleted");
-}
-
-/** Artists only exist through song credits; drop any left without songs (e.g. after fixing a typo). */
-function removeOrphanArtists(tx: Prisma.TransactionClient) {
-  return tx.artist.deleteMany({ where: { credits: { none: {} } } });
+  redirect("/admin/songs?toast=deleted");
 }
 
 /** "kannaana-kanne", or "kannaana-kanne-2" if another song already uses that. */

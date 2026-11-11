@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   images: {
     // Covers are served from /uploads (see src/app/uploads); only those paths may be resized.
-    localPatterns: [{ pathname: "/uploads/**", search: "" }],
+    localPatterns: [
+      { pathname: "/uploads/**", search: "" },
+      { pathname: "/brand/**", search: "" },
+    ],
   },
   experimental: {
     serverActions: {

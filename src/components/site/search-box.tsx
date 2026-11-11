@@ -23,7 +23,7 @@ export function SearchBox({ className, size = "default" }: { className?: string;
         enterKeyHint="search"
         className={cn(
           "bg-card",
-          size === "lg" ? "h-14 rounded-2xl pl-12 text-lg shadow-sm md:text-lg" : "h-10 rounded-full pl-9",
+          size === "lg" ? "h-14 rounded-full pl-12 text-lg md:text-lg" : "h-10 rounded-full pl-9",
         )}
       />
     </Form>

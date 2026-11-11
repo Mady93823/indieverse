@@ -13,6 +13,8 @@ import { existsSync } from "node:fs";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { demoCoverName } from "../src/lib/demo";
+import { shareImageFrom } from "../src/lib/share-image";
 import { slugify } from "../src/lib/slug";
 import { normalizeLyrics } from "../src/lib/songs/schema";
 import type { CreditRole } from "../src/generated/prisma/client";
@@ -24,6 +26,12 @@ const { db } = await import("../src/lib/db");
 // Same folder the app uses (src/lib/uploads.ts).
 const COVERS_DIR = path.join(path.resolve(process.env.UPLOAD_DIR || "uploads"), "covers");
 const DAY = 24 * 60 * 60 * 1000;
+
+// Every demo song and artist gets the same made-up text, so pages show their About sections.
+const DEMO_ABOUT =
+  "A made-up demo song. This is where a few lines in your own words go: what the song is about, how it came to be, or what a line means. Text like this makes each page original, which helps it rank on Google.";
+const demoBio = (name: string) =>
+  `${name} is a made-up demo artist, here to show how an artist page looks with a photo and a short bio. Replace the demo data with real artists before launch.`;
 
 type Motif = "rain" | "waves" | "sun" | "stars" | "rings";
 
@@ -507,9 +515,12 @@ Siragai virippom vaa`,
 
 /** A fixed file name per demo song (UUID-shaped, like real uploads) that marks the song as demo data. */
 function demoCoverPath(slug: string) {
-  const h = createHash("sha256").update(`indieverse-demo:${slug}`).digest("hex");
-  const name = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}.webp`;
-  return { file: path.join(COVERS_DIR, name), url: `/uploads/covers/${name}` };
+  const name = demoCoverName(slug);
+  return {
+    file: path.join(COVERS_DIR, name),
+    shareFile: path.join(COVERS_DIR, name.replace(/\.webp$/, "-share.jpg")),
+    url: `/uploads/covers/${name}`,
+  };
 }
 
 /** Small seeded random generator, so each song's cover looks the same every time. */
@@ -521,10 +532,6 @@ function random(seed: string) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-function escapeXml(text: string) {
-  return text.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 function motifShapes(motif: Motif, rand: () => number) {
@@ -571,8 +578,6 @@ function coverSvg(song: DemoSong, slug: string) {
     <rect width="800" height="800" fill="url(#bg)"/>
     ${motifShapes(motif, random(slug))}
     <rect width="800" height="800" fill="url(#shade)"/>
-    <text x="56" y="664" font-family="Ubuntu, 'DejaVu Sans', sans-serif" font-size="66" font-weight="700" fill="#fff">${escapeXml(song.title)}</text>
-    <text x="58" y="732" font-family="'Noto Sans Tamil', sans-serif" font-size="40" fill="#fff" fill-opacity="0.88">${escapeXml(song.titleTamil)}</text>
   </svg>`;
 }
 
@@ -595,7 +600,9 @@ async function addDemoSongs() {
     }
 
     const cover = demoCoverPath(slug);
-    await writeFile(cover.file, await sharp(Buffer.from(coverSvg(demo, slug))).webp({ quality: 82 }).toBuffer());
+    const coverImage = await sharp(Buffer.from(coverSvg(demo, slug))).webp({ quality: 82 }).toBuffer();
+    await writeFile(cover.file, coverImage);
+    await writeFile(cover.shareFile, await shareImageFrom(coverImage));
 
     const data = {
       title: demo.title,
@@ -607,6 +614,7 @@ async function addDemoSongs() {
       coverImage: cover.url,
       lyricsTamil: normalizeLyrics(demo.lyricsTamil),
       lyricsTanglish: normalizeLyrics(demo.lyricsTanglish),
+      about: demo.status === "PUBLISHED" ? DEMO_ABOUT : null,
       status: demo.status,
       views: demo.views,
       publishedAt: demo.status === "PUBLISHED" ? new Date(Date.now() - demo.daysAgo * DAY) : null,
@@ -626,8 +634,9 @@ async function addDemoSongs() {
           const artist = await tx.artist.upsert({
             where: { slug: artistSlug },
             update: {},
-            create: { name, slug: artistSlug },
+            create: { name, slug: artistSlug, bio: demoBio(name) },
           });
+          if (!artist.bio) await tx.artist.update({ where: { id: artist.id }, data: { bio: demoBio(name) } });
           await tx.songCredit.create({ data: { songId: saved.id, artistId: artist.id, role, position } });
         }
       }
@@ -649,9 +658,11 @@ async function removeDemoSongs() {
       console.log(`  kept "${demo.title}": it's one of your own songs (or a demo song you gave a new cover)`);
     }
     await unlink(demoCoverPath(slug).file).catch(() => {});
+    await unlink(demoCoverPath(slug).shareFile).catch(() => {});
   }
-  // Artists only exist through songs; drop the demo artists that no longer have any.
-  const artists = await db.artist.deleteMany({ where: { credits: { none: {} } } });
+  // Drop the demo artists that no longer have any songs. Other artists are left alone.
+  const demoArtists = DEMO_SONGS.flatMap((s) => [...s.singers, ...s.music, ...s.lyricists]).map(slugify);
+  const artists = await db.artist.deleteMany({ where: { slug: { in: demoArtists }, credits: { none: {} } } });
   console.log(`Removed ${removed} demo songs and ${artists.count} artists left without songs.`);
 }
 

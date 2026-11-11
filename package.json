@@ -12,7 +12,8 @@
     "db:deploy": "prisma migrate deploy",
     "create-admin": "tsx scripts/create-admin.mts",
     "demo:add": "tsx scripts/demo-data.mts",
-    "demo:remove": "tsx scripts/demo-data.mts --remove"
+    "demo:remove": "tsx scripts/demo-data.mts --remove",
+    "covers:share": "tsx scripts/share-images.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -45,3 +45,6 @@ next-env.d.ts
 
 # uploaded cover images (back these up with the database)
 /uploads
+
+# client files (design PDFs etc.), not part of the app
+/temp

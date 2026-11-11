@@ -18,6 +18,13 @@ enum CreditRole {
   LYRICS
 }
 
+// Owners can change everything. Editors manage songs, artists and pages, but not
+// site settings, ads or the team.
+enum AdminRole {
+  OWNER
+  EDITOR
+}
+
 model Song {
   id             Int          @id @default(autoincrement())
   slug           String       @unique
@@ -33,12 +40,23 @@ model Song {
   lyricsTamil    String       @default("") @map("lyrics_tamil")
   // Tamil words written in English letters. Shown under the "English" toggle.
   lyricsTanglish String       @default("") @map("lyrics_tanglish")
+  // A few sentences about the song (its story or meaning), shown under the lyrics.
+  about          String?
+  // Optional replacements for the title and description shown in search results.
+  seoTitle       String?      @map("seo_title")
+  seoDescription String?      @map("seo_description")
+  // Shown in "Editor's picks" on the home page.
+  featured       Boolean      @default(false)
+  hideAds        Boolean      @default(false) @map("hide_ads")
+  // Only admins see this, e.g. where permission to publish the lyrics came from.
+  adminNote      String?      @map("admin_note")
   status         SongStatus   @default(DRAFT)
   views          Int          @default(0)
   publishedAt    DateTime?    @map("published_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   credits        SongCredit[]
+  dailyViews     SongDailyViews[]
 
   @@index([status, publishedAt])
   @@index([status, views])
@@ -46,11 +64,19 @@ model Song {
 }
 
 model Artist {
-  id        Int          @id @default(autoincrement())
-  name      String
-  slug      String       @unique
-  createdAt DateTime     @default(now()) @map("created_at")
-  credits   SongCredit[]
+  id           Int          @id @default(autoincrement())
+  name         String
+  slug         String       @unique
+  nameTamil    String?      @map("name_tamil")
+  bio          String?
+  // Public path of the resized photo, e.g. "/uploads/artists/<uuid>.webp".
+  photo        String?
+  instagramUrl String?      @map("instagram_url")
+  youtubeUrl   String?      @map("youtube_url")
+  spotifyUrl   String?      @map("spotify_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at")
+  credits      SongCredit[]
 
   @@map("artists")
 }
@@ -75,6 +101,7 @@ model Admin {
   email        String    @unique
   name         String
   passwordHash String    @map("password_hash")
+  role         AdminRole @default(OWNER)
   createdAt    DateTime  @default(now()) @map("created_at")
   sessions     Session[]
 
@@ -91,4 +118,56 @@ model Session {
 
   @@index([adminId])
   @@map("sessions")
+}
+
+// Site-wide settings, one row per group ("general", "branding", ...). Values are checked
+// against the schemas in src/lib/settings/schema.ts, which also supply the defaults.
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+// Editable pages such as About and Privacy. A page without a row shows its built-in template.
+model Page {
+  slug      String   @id
+  title     String
+  body      String
+  published Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pages")
+}
+
+// Old addresses of songs and artists whose link changed, so shared links and search results keep working.
+model Redirect {
+  fromPath  String   @id @map("from_path")
+  toPath    String   @map("to_path")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([toPath])
+  @@map("redirects")
+}
+
+// Reads per song per day, for "Trending now" (the last 7 days). Song.views keeps the all-time total.
+model SongDailyViews {
+  songId Int      @map("song_id")
+  day    DateTime @db.Date
+  views  Int      @default(0)
+  song   Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([songId, day])
+  @@index([day])
+  @@map("song_daily_views")
+}
+
+// Newsletter sign-ups from the site. Admins export them to send mail with any email tool.
+model Subscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("subscribers")
 }
